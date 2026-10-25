@@ -27,7 +27,7 @@ async def main():
 
     # Start Flask Web Dashboard thread unless --no-web is passed
     if not no_web:
-        web_port = int(config.os.getenv("WEB_PORT", "5000"))
+        web_port = int(config.os.getenv("PORT", config.os.getenv("WEB_PORT", "5000")))
         web_thread = threading.Thread(target=start_flask_thread, args=(web_port,), daemon=True)
         web_thread.start()
 
@@ -41,7 +41,7 @@ async def main():
             print(" Please open http://localhost:5000 in your browser or edit .env to add your Telegram Bot Token.\n")
     else:
         print("\n Running in WEB-ONLY mode (bots disabled).")
-        print(f" Dashboard is live at http://localhost:{config.os.getenv('WEB_PORT', '5000')}\n")
+        print(f" Dashboard is live at http://localhost:{config.os.getenv('PORT', config.os.getenv('WEB_PORT', '5000'))}\n")
 
     # Main loop: watch for restart signals from the web dashboard
     try:

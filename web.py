@@ -135,7 +135,7 @@ def run_web_server(port=5000):
     app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
 
 if __name__ == "__main__":
-    port = int(os.getenv("WEB_PORT", "5000"))
+    port = int(os.getenv("PORT", os.getenv("WEB_PORT", "5000")))
     print(f"Starting Web Dashboard at http://localhost:{port}")
     run_web_server(port=port)
 
