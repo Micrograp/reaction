@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Auto-Reaction Bot Dashboard</title>
+    <!-- Google Fonts & Font Awesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --accent-primary: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.4);
+            --accent-success: #10b981;
+            --accent-warning: #f59e0b;
+            --accent-danger: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .brand-icon {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--accent-primary), #818cf8);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .brand h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .brand p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-success);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-success);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent-success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .stat-content h3 {
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
+
+        .stat-content p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Dashboard Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .card-header h2 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Form elements */
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--accent-primary), #4f46e5);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 14px var(--accent-glow);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Emoji Palette */
+        .emoji-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+            gap: 0.5rem;
+            max-height: 180px;
+            overflow-y: auto;
+            padding: 0.5rem;
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .emoji-item {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.05);
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .emoji-item:hover {
+            transform: scale(1.15);
+            background: rgba(99, 102, 241, 0.2);
+        }
+
+        .emoji-item.selected {
+            background: var(--accent-primary);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        /* Log Table */
+        .log-container {
+            max-height: 320px;
+            overflow-y: auto;
+        }
+
+        .log-item {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+
+        .log-item:last-child {
+            border-bottom: none;
+        }
+
+        .log-time {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+
+        .log-tag {
+            padding: 0.2rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .tag-SUCCESS { background: rgba(16, 185, 129, 0.2); color: var(--accent-success); }
+        .tag-WARNING { background: rgba(245, 158, 11, 0.2); color: var(--accent-warning); }
+        .tag-ERROR { background: rgba(239, 68, 68, 0.2); color: var(--accent-danger); }
+        .tag-INFO { background: rgba(99, 102, 241, 0.2); color: #818cf8; }
+
+        /* Bot Cards */
+        .bot-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .bot-item {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--glass-border);
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .bot-name {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="brand">
+                <div class="brand-icon">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <div>
+                    <h1>Telegram Auto-Reaction Service</h1>
+                    <p>Automated multi-bot channel reactions & engagement manager</p>
+                </div>
+            </div>
+            <div class="status-badge">
+                <div class="pulse-dot"></div>
+                <span id="service-status">System Active</span>
+            </div>
+        </header>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon" style="color: #818cf8;">
+                    <i class="fa-solid fa-robot"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 id="stat-bots">0</h3>
+                    <p>Active Bots</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="color: #10b981;">
+                    <i class="fa-solid fa-heart"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 id="stat-reactions">0</h3>
+                    <p>Reactions Sent</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="color: #f59e0b;">
+                    <i class="fa-solid fa-newspaper"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 id="stat-posts">0</h3>
+                    <p>Posts Processed</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="color: #ec4899;">
+                    <i class="fa-solid fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 id="stat-uptime">0m</h3>
+                    <p>System Uptime</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Dashboard Grid -->
+        <div class="main-grid">
+            <!-- Settings & Configuration -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fa-solid fa-sliders" style="color: var(--accent-primary);"></i> Reaction Settings</h2>
+                    <button class="btn btn-secondary" onclick="saveConfig()"><i class="fa-solid fa-save"></i> Save</button>
+                </div>
+
+                <div class="form-group">
+                    <label>Reaction Mode</label>
+                    <select id="reaction-mode" class="form-control">
+                        <option value="random">Random Emoji Selection (Recommended)</option>
+                        <option value="fixed">Fixed Emoji Selection</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Active Emoji Pool (Click emojis below to toggle)</label>
+                    <input type="text" id="selected-emojis-input" class="form-control" readonly style="letter-spacing: 2px; font-size: 1.1rem; margin-bottom: 0.5rem;">
+                    
+                    <div class="emoji-grid" id="emoji-palette">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Delay Range (Seconds before reacting)</label>
+                    <div style="display: flex; gap: 1rem;">
+                        <input type="number" id="min-delay" class="form-control" placeholder="Min Delay" step="any" min="0" value="0.5">
+                        <input type="number" id="max-delay" class="form-control" placeholder="Max Delay" step="any" min="0" value="2.0">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bot Tokens Manager -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fa-solid fa-key" style="color: #f59e0b;"></i> Bot Tokens</h2>
+                </div>
+
+                <div class="form-group">
+                    <label>Add New Bot Token</label>
+                    <div style="display: flex; gap: 0.75rem;">
+                        <input type="text" id="new-token-input" class="form-control" placeholder="Paste your Bot Token here (e.g. 123456789:ABCdef...)" style="flex: 1;">
+                        <button class="btn" onclick="addToken()" id="add-token-btn"><i class="fa-solid fa-plus"></i> Add Bot</button>
+                    </div>
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">Get tokens from <a href="https://t.me/BotFather" target="_blank" style="color: var(--accent-primary);">@BotFather</a> on Telegram. Add the bot as admin to your channel.</p>
+                </div>
+
+                <div class="card-header" style="margin-top: 1rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+                    <h2><i class="fa-solid fa-circle-check" style="color: var(--accent-success);"></i> Active Connected Bots</h2>
+                    <span style="font-size: 0.8rem; color: var(--text-muted);" id="bot-count-label">0 bots</span>
+                </div>
+                <div class="bot-list" id="bot-list">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Logs -->
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fa-solid fa-list-check" style="color: #818cf8;"></i> Live Reaction Activity Log</h2>
+                <span style="font-size: 0.8rem; color: var(--text-muted);">Auto-refreshes every 3 seconds</span>
+            </div>
+            <div class="log-container" id="log-list">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ALL_SUPPORTED_EMOJIS = [
+            "👍", "👎", "❤️", "🔥", "🥰", "👏", "😁", "🤔", "🤯", "😱",
+            "🤬", "😢", "🎉", "🤩", "🤮", "💩", "🙏", "👌", "🕊", "🤡",
+            "🥱", "🥴", "😍", "🐳", "❤️‍🔥", "🌚", "🌭", "💯", "🤣", "⚡",
+            "🏆", "🍾", "🍓", "🗿", "🎈"
+        ];
+
+        let selectedEmojis = new Set(["👍", "❤️", "🔥", "🎉", "🤩", "👏", "⚡"]);
+        let currentTokens = [];  // Track tokens locally
+        let settingsLoaded = false;  // Only load settings from server once on page load
+
+        function initEmojiPalette() {
+            const container = document.getElementById('emoji-palette');
+            container.innerHTML = '';
+            ALL_SUPPORTED_EMOJIS.forEach(emoji => {
+                const div = document.createElement('div');
+                div.className = `emoji-item ${selectedEmojis.has(emoji) ? 'selected' : ''}`;
+                div.innerText = emoji;
+                div.onclick = () => toggleEmoji(emoji, div);
+                container.appendChild(div);
+            });
+            updateEmojiInput();
+        }
+
+        function toggleEmoji(emoji, element) {
+            if (selectedEmojis.has(emoji)) {
+                if (selectedEmojis.size > 1) {
+                    selectedEmojis.delete(emoji);
+                    element.classList.remove('selected');
+                }
+            } else {
+                selectedEmojis.add(emoji);
+                element.classList.add('selected');
+            }
+            updateEmojiInput();
+        }
+
+        function updateEmojiInput() {
+            document.getElementById('selected-emojis-input').value = Array.from(selectedEmojis).join(' ');
+        }
+
+        // --- Add / Remove Token Functions ---
+
+        async function addToken() {
+            const input = document.getElementById('new-token-input');
+            const token = input.value.trim();
+            
+            if (!token) {
+                alert('Please paste a bot token first!');
+                return;
+            }
+
+            // Basic token format validation
+            if (!token.match(/^\d+:.+$/)) {
+                alert('Invalid token format. Bot tokens look like: 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ');
+                return;
+            }
+
+            // Check for duplicates
+            if (currentTokens.includes(token)) {
+                alert('This bot token is already added!');
+                return;
+            }
+
+            // Disable button while working
+            const btn = document.getElementById('add-token-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Adding...';
+
+            try {
+                const res = await fetch('/api/add_token', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ token: token })
+                });
+                const data = await res.json();
+                
+                if (data.status === 'success') {
+                    input.value = '';
+                    // Refresh the bot list
+                    await fetchStats();
+                } else {
+                    alert(data.message || 'Failed to add token.');
+                }
+            } catch (err) {
+                alert('Failed to add token: ' + err);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-plus"></i> Add Bot';
+            }
+        }
+
+        async function removeToken(token) {
+            if (!confirm('Remove this bot token? The bot will stop reacting.')) return;
+            
+            try {
+                const res = await fetch('/api/remove_token', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ token: token })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    await fetchStats();
+                } else {
+                    alert(data.message || 'Failed to remove token.');
+                }
+            } catch (err) {
+                alert('Failed to remove token: ' + err);
+            }
+        }
+
+        // Allow Enter key to add token
+        document.addEventListener('DOMContentLoaded', () => {
+            const tokenInput = document.getElementById('new-token-input');
+            if (tokenInput) {
+                tokenInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') addToken();
+                });
+            }
+        });
+
+        // --- Fetch Stats (no longer overwrites token input) ---
+
+        async function fetchStats() {
+            try {
+                const res = await fetch('/api/stats');
+                const data = await res.json();
+                
+                document.getElementById('stat-bots').innerText = data.active_bots;
+                document.getElementById('stat-reactions').innerText = data.reactions_sent;
+                document.getElementById('stat-posts').innerText = data.posts_processed;
+                document.getElementById('stat-uptime').innerText = data.uptime;
+
+                // Only load settings from server on first page load (don't overwrite user edits)
+                if (!settingsLoaded) {
+                    if (data.mode) {
+                        document.getElementById('reaction-mode').value = data.mode;
+                    }
+                    if (data.emojis && data.emojis.length > 0) {
+                        selectedEmojis = new Set(data.emojis);
+                        initEmojiPalette();
+                    }
+                    if (data.min_delay !== undefined) document.getElementById('min-delay').value = data.min_delay;
+                    if (data.max_delay !== undefined) document.getElementById('max-delay').value = data.max_delay;
+                    settingsLoaded = true;
+                }
+
+                // Update local token list
+                currentTokens = data.tokens || [];
+
+                // Render active bots list with remove buttons
+                const botList = document.getElementById('bot-list');
+                const botCountLabel = document.getElementById('bot-count-label');
+                botList.innerHTML = '';
+
+                if (data.bot_details && data.bot_details.length > 0) {
+                    botCountLabel.innerText = `${data.bot_details.length} bot(s)`;
+                    data.bot_details.forEach((bot, idx) => {
+                        // Find the matching token for this bot (by index or id)
+                        const tokenForBot = currentTokens[idx] || '';
+                        const maskedToken = tokenForBot ? tokenForBot.substring(0, 10) + '...' : '';
+                        
+                        botList.innerHTML += `
+                            <div class="bot-item">
+                                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                                    <span class="bot-name"><i class="fa-solid fa-robot" style="color: var(--accent-primary);"></i> @${bot.username} (${bot.first_name})</span>
+                                    <span style="font-size: 0.7rem; color: var(--text-muted); font-family: monospace;">${maskedToken}</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <span class="status-badge" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;">
+                                        <div class="pulse-dot"></div> ${bot.status}
+                                    </span>
+                                    <button class="btn btn-secondary" onclick="removeToken('${tokenForBot}')" style="padding: 0.4rem 0.75rem; font-size: 0.75rem; background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else if (currentTokens.length > 0) {
+                    // Tokens saved but bots not yet connected (restarting)
+                    botCountLabel.innerText = 'Starting...';
+                    botList.innerHTML = `<p style="color: var(--accent-warning); font-size: 0.85rem;"><i class="fa-solid fa-spinner fa-spin"></i> Bots are connecting, please wait...</p>`;
+                } else {
+                    botCountLabel.innerText = '0 bots';
+                    botList.innerHTML = `<p style="color: var(--text-muted); font-size: 0.85rem;">No bots connected yet. Paste a bot token above and click "Add Bot"!</p>`;
+                }
+            } catch (err) {
+                console.error("Error fetching stats:", err);
+            }
+        }
+
+        async function fetchLogs() {
+            try {
+                const res = await fetch('/api/logs');
+                const logs = await res.json();
+                const logContainer = document.getElementById('log-list');
+                logContainer.innerHTML = '';
+                if (logs.length === 0) {
+                    logContainer.innerHTML = `<div class="log-item" style="color: var(--text-muted);">No activity logged yet. Post something on your channel to see reactions in real time!</div>`;
+                    return;
+                }
+                logs.forEach(log => {
+                    logContainer.innerHTML += `
+                        <div class="log-item">
+                            <div>
+                                <span class="log-tag tag-${log.level}">${log.level}</span>
+                                <span style="margin-left: 0.5rem;">${log.message}</span>
+                            </div>
+                            <span class="log-time">${log.timestamp}</span>
+                        </div>
+                    `;
+                });
+            } catch (err) {
+                console.error("Error fetching logs:", err);
+            }
+        }
+
+        async function saveConfig() {
+            const mode = document.getElementById('reaction-mode').value;
+            const emojis = Array.from(selectedEmojis).join(' ');
+            const min_delay = document.getElementById('min-delay').value;
+            const max_delay = document.getElementById('max-delay').value;
+
+            try {
+                const res = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ mode, emojis, min_delay, max_delay })
+                });
+                const data = await res.json();
+                alert(data.message || 'Settings saved successfully!');
+            } catch (err) {
+                alert('Failed to save settings');
+            }
+        }
+
+        // Initialize page
+        initEmojiPalette();
+        fetchStats();
+        fetchLogs();
+
+        // Refresh stats and logs periodically
+        setInterval(fetchLogs, 3000);
+        setInterval(fetchStats, 5000);
+    </script>
+</body>
+</html>
+
