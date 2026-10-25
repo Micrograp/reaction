@@ -63,12 +63,31 @@ def get_reaction_mode() -> str:
     return mode if mode in ["random", "fixed"] else "random"
 
 def get_delay_range() -> tuple[float, float]:
+    if ENV_PATH.exists():
+        try:
+            load_dotenv(dotenv_path=ENV_PATH, override=True)
+        except Exception:
+            pass
     try:
-        min_d = float(os.getenv("MIN_DELAY", "0.5"))
-        max_d = float(os.getenv("MAX_DELAY", "2.0"))
-        return max(0.0, min_d), max(min_d, max_d)
-    except ValueError:
+        raw_min = os.getenv("MIN_DELAY", "0.5")
+        raw_max = os.getenv("MAX_DELAY", "2.0")
+        min_d = float(str(raw_min).strip()) if str(raw_min).strip() else 0.0
+        max_d = float(str(raw_max).strip()) if str(raw_max).strip() else min_d
+        if min_d > max_d:
+            max_d = min_d
+        return max(0.0, min_d), max(0.0, max_d)
+    except Exception:
         return 0.5, 2.0
+
+def get_admin_credentials() -> tuple[str, str]:
+    if ENV_PATH.exists():
+        try:
+            load_dotenv(dotenv_path=ENV_PATH, override=True)
+        except Exception:
+            pass
+    user = os.getenv("ADMIN_USERNAME", "admin").strip() or "admin"
+    pwd = os.getenv("ADMIN_PASSWORD", "admin123").strip() or "admin123"
+    return user, pwd
 
 def update_env(key: str, value: str):
     """Update a key in the .env file and in current os.environ."""

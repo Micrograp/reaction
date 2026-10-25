@@ -76,11 +76,31 @@ async def handle_channel_post(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     state.total_posts_processed += 1
 
-    # Apply configured delay (only if user wants a delay)
+    # Identify bot index among active bots
+    bot_index = 0
+    try:
+        active_ids = [b["id"] for b in state.bot_info]
+        if context.bot.id in active_ids:
+            bot_index = active_ids.index(context.bot.id)
+    except Exception:
+        bot_index = 0
+
     min_d, max_d = config.get_delay_range()
+    
+    # Base delay configured by user (0 if min_d == 0 and max_d == 0)
+    base_delay = random.uniform(min_d, max_d) if max_d > 0 else 0.0
+    
+    # Multi-bot staggering so multiple bots don't react at the exact same millisecond
     if max_d > 0:
-        delay = random.uniform(min_d, max_d)
-        await asyncio.sleep(delay)
+        stagger = random.uniform(min_d, max_d) if min_d > 0 else random.uniform(0.5, max(1.0, max_d))
+        total_delay = base_delay + (bot_index * stagger)
+    else:
+        # Instant mode: subtle 0.25s micro-stagger to avoid Telegram rate limits
+        total_delay = bot_index * 0.25
+
+    if total_delay > 0:
+        log_event("INFO", f"Bot [{bot_name}] waiting {total_delay:.1f}s before reacting to post #{message_id} in [{chat_title}]")
+        await asyncio.sleep(total_delay)
 
     emoji = pick_emoji()
 
