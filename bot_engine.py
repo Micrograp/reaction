@@ -141,34 +141,64 @@ def is_admin(user_id: int) -> bool:
     admin_id = config.get_admin_id()
     return admin_id == 0 or user_id == admin_id
 
+async def check_admin_or_reply(update: Update) -> bool:
+    user_id = update.effective_user.id
+    if is_admin(user_id):
+        return True
+    admin_id = config.get_admin_id()
+    await update.message.reply_text(
+        f"⛔ **Access Denied**\n\n"
+        f"Only the administrator can control this bot.\n"
+        f"Your Telegram User ID is: `{user_id}`\n\n"
+        f"*(Configured ADMIN_ID: `{admin_id}`)*",
+        parse_mode="Markdown"
+    )
+    return False
+
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     bot_name = context.bot.first_name
     emojis = " ".join(config.get_reaction_emojis())
     mode = config.get_reaction_mode()
+    min_d, max_d = config.get_delay_range()
     
     text = (
         f"🤖 **Auto-Reaction Bot Service**\n"
         f"Hello {user.first_name}! I am **{bot_name}**.\n\n"
-        f"✨ **Status**: Active & Ready!\n"
+        f"✨ **Status**: Active & Online!\n"
         f"🎭 **Current Emojis**: {emojis}\n"
-        f"⚙️ **Reaction Mode**: `{mode}`\n\n"
+        f"⚙️ **Reaction Mode**: `{mode}`\n"
+        f"⏱ **Delay**: `{min_d}s - {max_d}s`\n\n"
         f"📌 **How to use me**:\n"
         f"1. Add me to your Telegram Channel.\n"
         f"2. Make me an **Admin** with permission to post or edit messages.\n"
         f"3. Whenever you post in the channel, I will automatically add reactions!\n\n"
-        f"🛠 **Admin Commands**:\n"
-        f"• `/status` - View bot activity & stats\n"
-        f"• `/setemojis 👍 ❤️ 🔥` - Change reaction emojis\n"
-        f"• `/mode random` or `/mode fixed` - Switch mode\n"
-        f"• `/test` - Test reaction in this chat\n"
-        f"• `/help` - View help guide"
+        f"🛠 **Admin Management Commands**:\n"
+        f"• `/status` — View statistics & current settings\n"
+        f"• `/setemojis 😁 🔥 👍` — Change reaction emojis pool\n"
+        f"• `/mode random` or `/mode fixed` — Switch reaction mode\n"
+        f"• `/setdelay 0` or `/setdelay 1 3` — Set reaction delay\n"
+        f"• `/bots` — View all configured bots\n"
+        f"• `/addbot <TOKEN>` — Add a new bot token\n"
+        f"• `/delbot <#>` — Remove a bot by number\n"
+        f"• `/test` — Test a reaction in this chat\n"
+        f"• `/myid` — View your Telegram User ID"
     )
     await update.message.reply_text(text, parse_mode="Markdown")
 
+async def cmd_myid(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    admin_id = config.get_admin_id()
+    status = "Authorized Admin" if is_admin(user_id) else "Unauthorized"
+    await update.message.reply_text(
+        f"🆔 **Your Telegram User ID**: `{user_id}`\n"
+        f"🔐 **Status**: {status}\n\n"
+        f"*(Set `ADMIN_ID={user_id}` in your environment variables to restrict control)*",
+        parse_mode="Markdown"
+    )
+
 async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update.effective_user.id):
-        await update.message.reply_text("❌ Unauthorized.")
+    if not await check_admin_or_reply(update):
         return
 
     uptime_secs = int((datetime.now() - state.start_time).total_seconds())
@@ -178,6 +208,7 @@ async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     emojis = " ".join(config.get_reaction_emojis())
     mode = config.get_reaction_mode()
+    min_d, max_d = config.get_delay_range()
     active_bots_count = len(config.get_bot_tokens())
 
     text = (
@@ -189,18 +220,23 @@ async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"⚙️ **Configuration**:\n"
         f"• **Mode**: `{mode}`\n"
         f"• **Emoji Pool**: {emojis}\n"
-        f"• **Delay Range**: `{config.get_delay_range()[0]}s - {config.get_delay_range()[1]}s`"
+        f"• **Delay Range**: `{min_d}s - {max_d}s`\n"
+        f"• **Admin ID**: `{config.get_admin_id()}`"
     )
     await update.message.reply_text(text, parse_mode="Markdown")
 
 async def cmd_setemojis(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update.effective_user.id):
-        await update.message.reply_text("❌ Unauthorized.")
+    if not await check_admin_or_reply(update):
         return
 
     args = context.args
     if not args:
-        await update.message.reply_text("❌ Please specify emojis. Example: `/setemojis 👍 ❤️ 🔥 🎉`", parse_mode="Markdown")
+        current = " ".join(config.get_reaction_emojis())
+        await update.message.reply_text(
+            f"🎭 **Current Emojis**: {current}\n\n"
+            f"Usage: `/setemojis 😁` or `/setemojis 👍 ❤️ 🔥 🎉`",
+            parse_mode="Markdown"
+        )
         return
 
     new_emojis = " ".join(args)
@@ -209,19 +245,136 @@ async def cmd_setemojis(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"✅ Reaction emojis updated to: {new_emojis}")
 
 async def cmd_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update.effective_user.id):
-        await update.message.reply_text("❌ Unauthorized.")
+    if not await check_admin_or_reply(update):
         return
 
     args = context.args
     if not args or args[0].lower() not in ["random", "fixed"]:
-        await update.message.reply_text("❌ Usage: `/mode random` or `/mode fixed`", parse_mode="Markdown")
+        current = config.get_reaction_mode()
+        await update.message.reply_text(
+            f"⚙️ **Current Mode**: `{current}`\n\n"
+            f"Usage:\n"
+            f"• `/mode random` — Randomly picks an emoji per post\n"
+            f"• `/mode fixed` — Uses fixed first emoji",
+            parse_mode="Markdown"
+        )
         return
 
     new_mode = args[0].lower()
     config.update_env("REACTION_MODE", new_mode)
     log_event("CONFIG", f"Updated reaction mode to: {new_mode}")
     await update.message.reply_text(f"✅ Reaction mode updated to: `{new_mode}`", parse_mode="Markdown")
+
+async def cmd_setdelay(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await check_admin_or_reply(update):
+        return
+
+    args = context.args
+    if not args:
+        min_d, max_d = config.get_delay_range()
+        await update.message.reply_text(
+            f"⏱ **Current Delay**: `{min_d}s - {max_d}s`\n\n"
+            f"Usage:\n"
+            f"• `/setdelay 0` — Instant reactions (no delay)\n"
+            f"• `/setdelay 2` — Exact 2s delay\n"
+            f"• `/setdelay 1 3` — Random delay between 1s and 3s",
+            parse_mode="Markdown"
+        )
+        return
+
+    try:
+        min_val = float(args[0])
+        max_val = float(args[1]) if len(args) > 1 else min_val
+        if min_val < 0 or max_val < 0:
+            await update.message.reply_text("❌ Delay cannot be negative.")
+            return
+        if min_val > max_val:
+            min_val, max_val = max_val, min_val
+
+        config.update_env("MIN_DELAY", str(min_val))
+        config.update_env("MAX_DELAY", str(max_val))
+        log_event("CONFIG", f"Updated delay to: {min_val}s - {max_val}s")
+        await update.message.reply_text(f"✅ Reaction delay set to: `{min_val}s - {max_val}s`", parse_mode="Markdown")
+    except ValueError:
+        await update.message.reply_text("❌ Invalid numbers. Example: `/setdelay 0` or `/setdelay 1 3`", parse_mode="Markdown")
+
+async def cmd_bots(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await check_admin_or_reply(update):
+        return
+
+    tokens = config.get_bot_tokens()
+    if not tokens:
+        await update.message.reply_text("⚠️ No bots currently configured. Use `/addbot <TOKEN>` to add one.")
+        return
+
+    lines = [f"🤖 **Configured Bots ({len(tokens)})**:\n"]
+    for i, t in enumerate(tokens, 1):
+        bot_label = f"Bot #{i}"
+        if i - 1 < len(state.bot_info):
+            b = state.bot_info[i - 1]
+            bot_label = f"@{b['username']} ({b['first_name']})"
+        masked = t[:8] + "..." + t[-4:]
+        lines.append(f"{i}. **{bot_label}**\n   Token: `{masked}`")
+
+    lines.append("\nCommands:")
+    lines.append("• `/addbot <TOKEN>` — Add a new bot token")
+    lines.append("• `/delbot <NUMBER>` — Remove a bot by its list number")
+    await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+
+async def cmd_addbot(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await check_admin_or_reply(update):
+        return
+
+    args = context.args
+    if not args:
+        await update.message.reply_text("❌ Usage: `/addbot <BOT_TOKEN_FROM_BOTFATHER>`", parse_mode="Markdown")
+        return
+
+    new_token = args[0].strip()
+    existing = config.get_bot_tokens()
+    if new_token in existing:
+        await update.message.reply_text("⚠️ This bot token is already added.")
+        return
+
+    existing.append(new_token)
+    config.update_env("BOT_TOKENS", ",".join(existing))
+    state.restart_requested = True
+    log_event("CONFIG", f"Added bot token via Telegram PM. Total: {len(existing)}")
+    await update.message.reply_text(f"✅ Bot token added! Reloading bot instances... (Total: {len(existing)})")
+
+async def cmd_delbot(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await check_admin_or_reply(update):
+        return
+
+    args = context.args
+    if not args:
+        await update.message.reply_text("❌ Usage: `/delbot <NUMBER>` (use `/bots` to view numbers)", parse_mode="Markdown")
+        return
+
+    target = args[0].strip()
+    existing = config.get_bot_tokens()
+    token_to_remove = None
+
+    if target.isdigit():
+        idx = int(target) - 1
+        if 0 <= idx < len(existing):
+            token_to_remove = existing[idx]
+
+    if not token_to_remove:
+        for t in existing:
+            if target in t:
+                token_to_remove = t
+                break
+
+    if not token_to_remove:
+        await update.message.reply_text("❌ Bot not found. Use `/bots` to see the list of active bots.")
+        return
+
+    existing.remove(token_to_remove)
+    config.update_env("BOT_TOKENS", ",".join(existing))
+    state.restart_requested = True
+    log_event("CONFIG", f"Removed bot token via Telegram PM. Remaining: {len(existing)}")
+    await update.message.reply_text(f"✅ Bot removed! Reloading bot instances... ({len(existing)} remaining)")
 
 async def cmd_test(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.message
@@ -253,12 +406,19 @@ async def build_bot_app(token: str) -> Application:
     except Exception as e:
         log_event("ERROR", f"Failed to connect bot token {token[:10]}... : {e}")
 
-    # Register handlers
+    # Register admin commands
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("help", cmd_start))
     app.add_handler(CommandHandler("status", cmd_status))
+    app.add_handler(CommandHandler("settings", cmd_status))
     app.add_handler(CommandHandler("setemojis", cmd_setemojis))
     app.add_handler(CommandHandler("mode", cmd_mode))
+    app.add_handler(CommandHandler("setdelay", cmd_setdelay))
+    app.add_handler(CommandHandler("delay", cmd_setdelay))
+    app.add_handler(CommandHandler("bots", cmd_bots))
+    app.add_handler(CommandHandler("addbot", cmd_addbot))
+    app.add_handler(CommandHandler("delbot", cmd_delbot))
+    app.add_handler(CommandHandler("myid", cmd_myid))
     app.add_handler(CommandHandler("test", cmd_test))
 
     # Channel Post & Message Listener

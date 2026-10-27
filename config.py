@@ -79,15 +79,6 @@ def get_delay_range() -> tuple[float, float]:
     except Exception:
         return 0.5, 2.0
 
-def get_admin_credentials() -> tuple[str, str]:
-    if ENV_PATH.exists():
-        try:
-            load_dotenv(dotenv_path=ENV_PATH, override=True)
-        except Exception:
-            pass
-    user = os.getenv("ADMIN_USERNAME", "admin").strip() or "admin"
-    pwd = os.getenv("ADMIN_PASSWORD", "admin123").strip() or "admin123"
-    return user, pwd
 
 def update_env(key: str, value: str):
     """Update a key in the .env file and in current os.environ."""
