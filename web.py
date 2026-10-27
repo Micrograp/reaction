@@ -24,6 +24,11 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+@app.route("/ping")
+@app.route("/health")
+def healthcheck():
+    return jsonify({"status": "healthy", "service": "Telegram Auto-Reaction Bot"}), 200
+
 @app.route("/")
 def index():
     return redirect(url_for("admin"))
