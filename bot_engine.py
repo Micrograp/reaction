@@ -141,38 +141,32 @@ def is_admin(user_id: int) -> bool:
     admin_id = config.get_admin_id()
     return admin_id == 0 or user_id == admin_id
 
-async def check_admin_or_reply(update: Update) -> bool:
-    user_id = update.effective_user.id
-    if is_admin(user_id):
-        return True
-    admin_id = config.get_admin_id()
-    await update.message.reply_text(
-        f"⛔ **Access Denied**\n\n"
-        f"Only the administrator can control this bot.\n"
-        f"Your Telegram User ID is: `{user_id}`\n\n"
-        f"*(Configured ADMIN_ID: `{admin_id}`)*",
-        parse_mode="Markdown"
-    )
-    return False
-
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     bot_name = context.bot.first_name
+    
+    # Non-admin users see ONLY a simple friendly welcome message
+    if not is_admin(user.id):
+        text = (
+            f"👋 Hello {user.first_name}!\n\n"
+            f"I am **{bot_name}**, an automated Telegram channel reaction bot.\n"
+            f"Add me to your channel as an **Admin** with message permissions, and I will automatically react to every new post! ⚡"
+        )
+        await update.message.reply_text(text, parse_mode="Markdown")
+        return
+
+    # Admin user sees full control panel
     emojis = " ".join(config.get_reaction_emojis())
     mode = config.get_reaction_mode()
     min_d, max_d = config.get_delay_range()
     
     text = (
-        f"🤖 **Auto-Reaction Bot Service**\n"
+        f"🤖 **Auto-Reaction Bot Service** (Admin Panel)\n"
         f"Hello {user.first_name}! I am **{bot_name}**.\n\n"
         f"✨ **Status**: Active & Online!\n"
         f"🎭 **Current Emojis**: {emojis}\n"
         f"⚙️ **Reaction Mode**: `{mode}`\n"
         f"⏱ **Delay**: `{min_d}s - {max_d}s`\n\n"
-        f"📌 **How to use me**:\n"
-        f"1. Add me to your Telegram Channel.\n"
-        f"2. Make me an **Admin** with permission to post or edit messages.\n"
-        f"3. Whenever you post in the channel, I will automatically add reactions!\n\n"
         f"🛠 **Admin Management Commands**:\n"
         f"• `/status` — View statistics & current settings\n"
         f"• `/setemojis 😁 🔥 👍` — Change reaction emojis pool\n"
@@ -188,18 +182,19 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_myid(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
+    if not is_admin(user_id):
+        return  # Silently ignore non-admins
+
     admin_id = config.get_admin_id()
-    status = "Authorized Admin" if is_admin(user_id) else "Unauthorized"
     await update.message.reply_text(
         f"🆔 **Your Telegram User ID**: `{user_id}`\n"
-        f"🔐 **Status**: {status}\n\n"
-        f"*(Set `ADMIN_ID={user_id}` in your environment variables to restrict control)*",
+        f"🔐 **Configured ADMIN_ID**: `{admin_id}`",
         parse_mode="Markdown"
     )
 
 async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not await check_admin_or_reply(update):
-        return
+    if not is_admin(update.effective_user.id):
+        return  # Silently ignore non-admins
 
     uptime_secs = int((datetime.now() - state.start_time).total_seconds())
     hours, remainder = divmod(uptime_secs, 3600)
@@ -226,8 +221,8 @@ async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(text, parse_mode="Markdown")
 
 async def cmd_setemojis(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not await check_admin_or_reply(update):
-        return
+    if not is_admin(update.effective_user.id):
+        return  # Silently ignore non-admins
 
     args = context.args
     if not args:
@@ -245,8 +240,8 @@ async def cmd_setemojis(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"✅ Reaction emojis updated to: {new_emojis}")
 
 async def cmd_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not await check_admin_or_reply(update):
-        return
+    if not is_admin(update.effective_user.id):
+        return  # Silently ignore non-admins
 
     args = context.args
     if not args or args[0].lower() not in ["random", "fixed"]:
@@ -266,8 +261,8 @@ async def cmd_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"✅ Reaction mode updated to: `{new_mode}`", parse_mode="Markdown")
 
 async def cmd_setdelay(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not await check_admin_or_reply(update):
-        return
+    if not is_admin(update.effective_user.id):
+        return  # Silently ignore non-admins
 
     args = context.args
     if not args:
@@ -299,8 +294,8 @@ async def cmd_setdelay(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Invalid numbers. Example: `/setdelay 0` or `/setdelay 1 3`", parse_mode="Markdown")
 
 async def cmd_bots(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not await check_admin_or_reply(update):
-        return
+    if not is_admin(update.effective_user.id):
+        return  # Silently ignore non-admins
 
     tokens = config.get_bot_tokens()
     if not tokens:
@@ -322,8 +317,8 @@ async def cmd_bots(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
 
 async def cmd_addbot(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not await check_admin_or_reply(update):
-        return
+    if not is_admin(update.effective_user.id):
+        return  # Silently ignore non-admins
 
     args = context.args
     if not args:
@@ -343,8 +338,8 @@ async def cmd_addbot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"✅ Bot token added! Reloading bot instances... (Total: {len(existing)})")
 
 async def cmd_delbot(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not await check_admin_or_reply(update):
-        return
+    if not is_admin(update.effective_user.id):
+        return  # Silently ignore non-admins
 
     args = context.args
     if not args:
@@ -377,6 +372,9 @@ async def cmd_delbot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"✅ Bot removed! Reloading bot instances... ({len(existing)} remaining)")
 
 async def cmd_test(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update.effective_user.id):
+        return  # Silently ignore non-admins
+
     msg = update.message
     emoji = pick_emoji()
     try:
